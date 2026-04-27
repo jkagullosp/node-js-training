@@ -1,0 +1,18 @@
+info:
+  name: JSON BODY
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://jsonplaceholder.typicode.com/posts
+  body:
+    type: json
+    data: '{ title: "hello", body: "world", userId: 1}'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
