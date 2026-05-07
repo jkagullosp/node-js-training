@@ -1,49 +1,47 @@
-function validateCreateNote(req, res, next) {
-  const { title, content, tag } = req.body;
+const { z } = require("zod");
 
-  if (!title) {
-    return res.status(400).json({ error: { status: 400, message: "title is required" } });
+const createNoteSchema = z.object({
+  title: z.string().min(1, "Title is required").trim(),
+  content: z.string().min(1, "Content is required").trim(),
+  tag: z.string().trim().nullable().optional(),
+});
+
+const updateNoteSchema = z.object({
+  title: z.string().min(1, "Title cannot be empty").trim().optional(),
+  content: z.string().min(1, "Content cannot be empty").trim().optional(),
+  tag: z.string().trim().nullable().optional(),
+});
+
+const querySchema = z.object({
+  tag: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  q: z.string().trim().optional(),
+  sort: z
+    .string()
+    .regex(
+      /^(id|title|content|tag|createdAt|updatedAt):(asc|desc)$/,
+      "sort must be field:direction (e.g. title:asc)"
+    )
+    .optional(),
+});
+
+const validate = (schema) => (req, res, next) => {
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.format() });
   }
-
-  if (!content) {
-    return res.status(400).json({ error: { status: 400, message: "content is required" } });
-  }
-
-  if (typeof title !== "string" || title.trim().length === 0 || title.trim().length > 100) {
-    return res.status(400).json({ error: { status: 400, message: "title must be a non-empty string of 1–100 characters" } });
-  }
-
-  if (typeof content !== "string" || content.trim().length === 0 || content.trim().length > 5000) {
-    return res.status(400).json({ error: { status: 400, message: "content must be a non-empty string of 1–5000 characters" } });
-  }
-
-  if (tag !== undefined && (typeof tag !== "string" || tag.trim().length > 30)) {
-    return res.status(400).json({ error: { status: 400, message: "tag must be a string of max 30 characters" } });
-  }
-
+  req.body = result.data;
   next();
-}
+};
 
-function validateUpdateNote(req, res, next) {
-  const { title, content, tag } = req.body;
-
-  if (title !== undefined) {
-    if (typeof title !== "string" || title.trim().length === 0 || title.trim().length > 100) {
-      return res.status(400).json({ error: { status: 400, message: "title must be a non-empty string of 1–100 characters" } });
-    }
+const validateQuery = (schema) => (req, res, next) => {
+  const result = schema.safeParse(req.query);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.format() });
   }
-
-  if (content !== undefined) {
-    if (typeof content !== "string" || content.trim().length === 0 || content.trim().length > 5000) {
-      return res.status(400).json({ error: { status: 400, message: "content must be a non-empty string of 1–5000 characters" } });
-    }
-  }
-
-  if (tag !== undefined && (typeof tag !== "string" || tag.trim().length > 30)) {
-    return res.status(400).json({ error: { status: 400, message: "tag must be a string of max 30 characters" } });
-  }
-
+  req.validatedQuery = result.data;
   next();
-}
+};
 
-module.exports = { validateCreateNote, validateUpdateNote };
+module.exports = { validate, validateQuery, createNoteSchema, updateNoteSchema, querySchema };
