@@ -17,6 +17,6 @@ function divide(a,b) {
 }
 
 console.log(`Add => ${add(1,2)}`);
-console.log(`Subtract => ${add(3,4)}`);
-console.log(`Multiply => ${add(5,6)}`);
-console.log(`Divide => ${add(7,8)}`);
+console.log(`Subtract => ${subtract(3,4)}`);
+console.log(`Multiply => ${multiply(5,6)}`);
+console.log(`Divide => ${divide(7,8)}`);
