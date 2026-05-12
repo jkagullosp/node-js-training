@@ -1,7 +1,7 @@
 const express = require("express");
 const morgan = require("morgan");
 const prisma = require("../db");
-const { validate, validateQuery, createNoteSchema, updateNoteSchema, querySchema } = require("../middleware/validate");
+const { validate, createNoteSchema, updateNoteSchema } = require("../middleware/validate");
 
 const router = express.Router();
 router.use(morgan("dev"));
@@ -19,41 +19,18 @@ router.post("/", validate(createNoteSchema), async (req, res) => {
   }
 });
 
-// GET /notes - supports ?tag=, ?page=, ?limit=, ?q=, ?sort=field:dir
-router.get("/", validateQuery(querySchema), async (req, res) => {
+// GET /notes
+router.get("/", async (req, res) => {
   try {
-    const { tag, page, limit, q, sort } = req.validatedQuery;
-
+    const { tag } = req.query;
     const where = {};
     if (tag) where.tag = tag;
-    if (q) {
-      where.OR = [
-        { title: { contains: q } },
-        { content: { contains: q } },
-      ];
-    }
 
-    let orderBy = { createdAt: "desc" };
-    if (sort) {
-      const [field, direction] = sort.split(":");
-      orderBy = { [field]: direction };
-    }
-
-    const skip = (page - 1) * limit;
-    const [notes, total] = await Promise.all([
-      prisma.note.findMany({ where, orderBy, skip, take: limit }),
-      prisma.note.count({ where }),
-    ]);
-
-    return res.status(200).json({
-      data: notes,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+    const notes = await prisma.note.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
     });
+    return res.status(200).json(notes);
   } catch (error) {
     res.status(500).json({ error: { status: 500, message: "Failed to fetch notes" } });
   }

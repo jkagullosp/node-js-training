@@ -1,14 +1,14 @@
 const { z } = require("zod");
 
 const createNoteSchema = z.object({
-  title: z.string().min(1, "Title is required").trim(),
-  content: z.string().min(1, "Content is required").trim(),
+  title: z.string().min(1, "title is required").max(100, "title must be 100 characters or less").trim(),
+  content: z.string().min(1, "content is required").max(5000, "content must be 5000 characters or less").trim(),
   tag: z.string().trim().nullable().optional(),
 });
 
 const updateNoteSchema = z.object({
-  title: z.string().min(1, "Title cannot be empty").trim().optional(),
-  content: z.string().min(1, "Content cannot be empty").trim().optional(),
+  title: z.string().min(1, "title cannot be empty").max(100, "title must be 100 characters or less").trim().optional(),
+  content: z.string().min(1, "content cannot be empty").max(5000, "content must be 5000 characters or less").trim().optional(),
   tag: z.string().trim().nullable().optional(),
 });
 
@@ -29,7 +29,13 @@ const querySchema = z.object({
 const validate = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
   if (!result.success) {
-    return res.status(400).json({ error: result.error.format() });
+    const issue = result.error.issues?.[0] ?? result.error.errors?.[0];
+    // Zod v4 reports missing fields as invalid_type; derive a friendlier message from the path
+    let message = issue.message;
+    if (issue.code === "invalid_type" && issue.message.includes("undefined") && issue.path.length > 0) {
+      message = `${issue.path[0]} is required`;
+    }
+    return res.status(400).json({ error: { status: 400, message } });
   }
   req.body = result.data;
   next();
