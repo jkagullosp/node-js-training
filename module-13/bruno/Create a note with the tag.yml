@@ -1,0 +1,15 @@
+info:
+  name: Create a note with the tag
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/notes
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
