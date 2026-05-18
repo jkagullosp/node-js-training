@@ -1,0 +1,44 @@
+{
+  "name": "flowboard-api",
+  "version": "1.0.0",
+  "description": "FlowBoard task management REST API",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0",
+    "zod": "^3.24.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1",
+    "ioredis": "^5.4.2",
+    "pino": "^8.21.0",
+    "pino-http": "^9.0.0",
+    "helmet": "^7.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.7",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.1.9",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "supertest": "^6.3.4",
+    "@types/supertest": "^6.0.2",
+    "ts-jest": "^29.2.5"
+  }
+}

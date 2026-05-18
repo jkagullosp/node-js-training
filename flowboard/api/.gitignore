@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment — never commit secrets
+.env
+
+# Prisma generated client (regenerated via `prisma generate` at build time)
+# The schema itself (prisma/schema.prisma) IS committed
+node_modules/.prisma/
+
+# Logs
+*.log
+logs/
+
+# Test artefacts
+coverage/
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

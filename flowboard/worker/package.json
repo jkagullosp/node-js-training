@@ -1,0 +1,29 @@
+{
+  "name": "flowboard-worker",
+  "version": "1.0.0",
+  "description": "FlowBoard background worker — Redis Streams consumer for audit log persistence",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "dotenv": "^16.0.0",
+    "ioredis": "^5.0.0",
+    "pino": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "nodemon": "^3.0.0",
+    "prisma": "^6.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
