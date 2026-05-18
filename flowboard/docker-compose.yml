@@ -1,0 +1,83 @@
+services:
+  # ── PostgreSQL 16 ─────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flowboard
+      POSTGRES_PASSWORD: flowboard
+      POSTGRES_DB: flowboard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flowboard_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowboard -d flowboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis 7 ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - flowboard_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── API (Express + Prisma + TypeScript) ───────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    env_file: ./api/.env
+    networks:
+      - flowboard_net
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Worker (Redis Streams consumer) ──────────────────────────────────────────
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    env_file: ./worker/.env
+    networks:
+      - flowboard_net
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Nginx (reverse proxy → api:3000) ─────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - flowboard_net
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  flowboard_net:
+    driver: bridge
