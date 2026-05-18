@@ -1,14 +1,15 @@
 import { type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
+import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 
 export class AppError extends Error {
   public readonly statusCode: number;
-  public readonly isOperational: boolean;
+  public readonly code: string;
 
-  constructor(message: string, statusCode: number, isOperational = true) {
+  constructor(message: string, statusCode: number, code = 'INTERNAL_ERROR') {
     super(message);
     this.statusCode = statusCode;
-    this.isOperational = isOperational;
-    // Restore prototype chain — required when extending built-ins in TypeScript
+    this.code = code;
     Object.setPrototypeOf(this, new.target.prototype);
     Error.captureStackTrace(this, this.constructor);
   }
@@ -21,26 +22,49 @@ export const errorHandler: ErrorRequestHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  const isProduction = process.env['NODE_ENV'] === 'production';
-
-  if (err instanceof AppError) {
-    res.status(err.statusCode).json({
-      error: {
-        status: err.statusCode,
-        message: err.message,
-      },
+  // Zod validation failure → 422
+  if (err instanceof ZodError) {
+    res.status(422).json({
+      success: false,
+      message: 'Validation error',
+      code: 'VALIDATION_ERROR',
+      errors: err.errors,
     });
     return;
   }
 
-  // Unhandled / non-operational errors
-  const message = isProduction ? 'Internal server error' : (err instanceof Error ? err.message : 'Unknown error');
+  // Prisma record-not-found → 404
+  if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2025'
+  ) {
+    res.status(404).json({
+      success: false,
+      message: 'Resource not found',
+      code: 'NOT_FOUND',
+    });
+    return;
+  }
 
+  // Known operational error
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      code: err.code,
+    });
+    return;
+  }
+
+  // Unknown / unexpected error — hide internals in production
+  const isProduction = process.env['NODE_ENV'] === 'production';
   res.status(500).json({
-    error: {
-      status: 500,
-      message,
-      ...(isProduction ? {} : { stack: err instanceof Error ? err.stack : undefined }),
-    },
+    success: false,
+    message: isProduction
+      ? 'Internal server error'
+      : err instanceof Error
+        ? err.message
+        : 'Unknown error',
+    code: 'INTERNAL_ERROR',
   });
 };

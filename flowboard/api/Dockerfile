@@ -1,6 +1,9 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
+# Required so prisma generate in the builder targets the correct openssl version
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copy manifests first so layer caching works — only re-runs npm install when
