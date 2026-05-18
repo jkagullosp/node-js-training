@@ -24,7 +24,11 @@
     "pino-http": "^9.0.0",
     "helmet": "^7.2.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.2"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "typescript": "^5.7.3",
