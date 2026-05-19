@@ -2,6 +2,9 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import helmet from 'helmet';
 import cors from 'cors';
 import { AppError, errorHandler } from './errors/AppError';
+import { authenticate } from './middleware/authenticate';
+import healthRouter from './routes/health';
+import authRouter from './routes/auth';
 import taskRouter from './routes/tasks';
 import boardRouter from './routes/boards';
 
@@ -35,12 +38,15 @@ export function createApp(): Express {
   app.use(express.json({ limit: '10kb' }));
 
   // ── Routes ────────────────────────────────────────────────────────────────
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', uptime: process.uptime() });
-  });
+  // Public health/readiness endpoints — no auth middleware
+  app.use('/', healthRouter);
 
-  app.use('/tasks', taskRouter);
-  app.use('/boards', boardRouter);
+  // Public — no authenticate middleware
+  app.use('/auth', authRouter);
+
+  // Protected — authenticate middleware applied per router
+  app.use('/boards', authenticate, boardRouter);
+  app.use('/tasks', authenticate, taskRouter);
 
   // ── 404 catch-all ─────────────────────────────────────────────────────────
   app.use((_req: Request, _res: Response, next: NextFunction) => {

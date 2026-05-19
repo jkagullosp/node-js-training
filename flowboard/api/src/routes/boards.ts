@@ -21,9 +21,8 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name } = CreateBoardSchema.parse(req.body);
-    // TODO Day 5: replace placeholder with req.user.id once authenticate middleware is wired
     const board = await prisma.board.create({
-      data: { name, ownerId: 'placeholder' },
+      data: { name, ownerId: req.user!.id },
     });
     res.status(201).json({ success: true, data: board });
   } catch (err) {
