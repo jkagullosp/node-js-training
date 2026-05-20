@@ -3,6 +3,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 # Install dependencies first (layer-cached unless package files change)
 COPY package*.json ./
 RUN npm ci --include=dev
@@ -20,6 +22,8 @@ RUN npm run build
 FROM node:22-alpine AS production
 
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 # Install production dependencies only
 COPY package*.json ./

@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { env } from '../config';
 import { AppError } from '../errors/AppError';
 
 interface AccessTokenPayload {
@@ -32,14 +33,8 @@ export function authenticate(
 
   const token = authHeader.slice(7); // strip "Bearer "
 
-  const secret = process.env['JWT_SECRET'];
-  if (!secret) {
-    next(new AppError('JWT_SECRET is not configured', 500, 'INTERNAL_ERROR'));
-    return;
-  }
-
   try {
-    const payload = jwt.verify(token, secret);
+    const payload = jwt.verify(token, env.JWT_SECRET);
 
     if (!isAccessTokenPayload(payload)) {
       next(new AppError('Unauthorized', 401, 'UNAUTHORIZED'));

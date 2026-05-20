@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flowboard_test
+      POSTGRES_PASSWORD: flowboard_test
+      POSTGRES_DB: flowboard_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowboard_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    tmpfs:
+      - /data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+      target: builder
+    env_file: ./api/.env.test
+    environment:
+      DATABASE_URL: postgresql://flowboard_test:flowboard_test@db:5432/flowboard_test
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: test
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./api/tests:/app/tests
+    command: sh -c "npx prisma migrate deploy && tail -f /dev/null"

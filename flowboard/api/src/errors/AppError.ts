@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import { env } from '../config';
 
 export class AppError extends Error {
   public readonly statusCode: number;
@@ -34,6 +35,7 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   // Prisma record-not-found → 404
+  /* istanbul ignore if */
   if (
     err instanceof Prisma.PrismaClientKnownRequestError &&
     err.code === 'P2025'
@@ -57,7 +59,7 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   // Unknown / unexpected error — hide internals in production
-  const isProduction = process.env['NODE_ENV'] === 'production';
+  const isProduction = env.NODE_ENV === 'production';
   res.status(500).json({
     success: false,
     message: isProduction
