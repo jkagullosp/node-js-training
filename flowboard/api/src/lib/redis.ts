@@ -1,12 +1,9 @@
 import Redis from 'ioredis';
+import { env } from '../config';
+import logger from './logger';
 
 function createRedisClient(): Redis {
-  const redisUrl = process.env['REDIS_URL'];
-  if (!redisUrl) {
-    throw new Error('REDIS_URL environment variable is not set');
-  }
-
-  const client = new Redis(redisUrl, {
+  const client = new Redis(env.REDIS_URL, {
     // Disable auto-reconnect attempts that would block the event loop on shutdown
     maxRetriesPerRequest: 3,
     enableReadyCheck: true,
@@ -15,11 +12,11 @@ function createRedisClient(): Redis {
 
   client.on('error', (err: Error) => {
     // Log but do not crash — callers handle Redis unavailability gracefully
-    console.error('[redis] connection error:', err.message);
+    logger.error({ err }, '[redis] connection error');
   });
 
   client.on('connect', () => {
-    console.info('[redis] connected');
+    logger.info('[redis] connected');
   });
 
   return client;

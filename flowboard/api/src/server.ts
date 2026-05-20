@@ -1,19 +1,25 @@
 import 'dotenv/config';
+import { env } from './config';
 import { createApp } from './app';
+import logger from './lib/logger';
+import { prisma } from './lib/prisma';
+import { redis } from './lib/redis';
 
-const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
+const PORT = env.PORT;
 
 const app = createApp();
 
 const server = app.listen(PORT, () => {
-  console.info(`[server] FlowBoard API listening on port ${PORT}`);
+  logger.info(`[server] FlowBoard API listening on port ${PORT}`);
 });
 
 // Graceful shutdown — finish in-flight requests before exiting
 function shutdown(signal: string): void {
-  console.info(`[server] ${signal} received — shutting down gracefully`);
-  server.close(() => {
-    console.info('[server] HTTP server closed');
+  logger.info(`[server] ${signal} received — shutting down gracefully`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    redis.quit();
+    logger.info('[server] HTTP server closed — connections drained');
     process.exit(0);
   });
 }
