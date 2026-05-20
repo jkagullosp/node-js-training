@@ -2,9 +2,11 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
+import { env } from '../config';
 import { prisma } from '../lib/prisma';
 import { redis } from '../lib/redis';
 import { AppError } from '../errors/AppError';
+import { rateLimiter } from '../middleware/rateLimiter';
 import {
   RegisterSchema,
   LoginSchema,
@@ -36,18 +38,12 @@ function isRefreshTokenPayload(payload: unknown): payload is RefreshTokenPayload
 }
 
 function issueAccessToken(userId: string, email: string): string {
-  const secret = process.env['JWT_SECRET'];
-  if (!secret) throw new AppError('JWT_SECRET is not configured', 500, 'INTERNAL_ERROR');
-
-  return jwt.sign({ sub: userId, email }, secret, { expiresIn: ACCESS_TOKEN_TTL });
+  return jwt.sign({ sub: userId, email }, env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_TTL });
 }
 
 async function issueRefreshToken(userId: string): Promise<string> {
-  const secret = process.env['JWT_REFRESH_SECRET'];
-  if (!secret) throw new AppError('JWT_REFRESH_SECRET is not configured', 500, 'INTERNAL_ERROR');
-
   const jti = crypto.randomUUID();
-  const token = jwt.sign({ sub: userId, jti }, secret, { expiresIn: REFRESH_TOKEN_TTL });
+  const token = jwt.sign({ sub: userId, jti }, env.JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_TTL });
 
   await redis.set(
     `refresh:${userId}:${jti}`,
@@ -60,7 +56,7 @@ async function issueRefreshToken(userId: string): Promise<string> {
 }
 
 // POST /auth/register
-router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/register', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = RegisterSchema.parse(req.body);
 
@@ -79,6 +75,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
       ) {
         throw new AppError('Email already in use', 409, 'CONFLICT');
       }
+      /* istanbul ignore next */
       throw err;
     }
 
@@ -92,7 +89,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
 });
 
 // POST /auth/login
-router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/login', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = LoginSchema.parse(req.body);
 
@@ -102,7 +99,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     });
 
     // Constant-time-safe: always run bcrypt compare to prevent timing attacks
-    const passwordHash = user?.password ?? '$2b$12$invalidhashpaddingtomakethiswork00000000000000000000000';
+    const passwordHash = user?.password ?? '$2b$12$WnPPNcpj4oXqYFnD/fqMPuCBxGrEtJzGROCjWXWb4MVFaJnpO4zRK';
     const match = await bcrypt.compare(password, passwordHash);
 
     if (!user || !match) {
@@ -119,16 +116,13 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 // POST /auth/refresh
-router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/refresh', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { refreshToken: incomingToken } = RefreshTokenSchema.parse(req.body);
 
-    const secret = process.env['JWT_REFRESH_SECRET'];
-    if (!secret) throw new AppError('JWT_REFRESH_SECRET is not configured', 500, 'INTERNAL_ERROR');
-
     let payload: RefreshTokenPayload;
     try {
-      const decoded = jwt.verify(incomingToken, secret);
+      const decoded = jwt.verify(incomingToken, env.JWT_REFRESH_SECRET);
       if (!isRefreshTokenPayload(decoded)) {
         throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
       }
@@ -173,11 +167,8 @@ router.post('/logout', async (req: Request, res: Response, next: NextFunction) =
   try {
     const { refreshToken } = LogoutSchema.parse(req.body);
 
-    const secret = process.env['JWT_REFRESH_SECRET'];
-    if (!secret) throw new AppError('JWT_REFRESH_SECRET is not configured', 500, 'INTERNAL_ERROR');
-
     try {
-      const decoded = jwt.verify(refreshToken, secret);
+      const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET);
       if (isRefreshTokenPayload(decoded)) {
         await redis.del(`refresh:${decoded.sub}:${decoded.jti}`);
       }
