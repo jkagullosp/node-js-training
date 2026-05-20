@@ -6,9 +6,10 @@ import { BoardIdParam, CreateBoardSchema } from '../schemas/boardSchemas';
 const router = Router();
 
 // GET /boards
-router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const boards = await prisma.board.findMany({
+      where: { ownerId: req.user!.id },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: boards });
@@ -39,6 +40,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       include: { tasks: true },
     });
     if (!board) throw new AppError('Board not found', 404, 'BOARD_NOT_FOUND');
+    if (board.ownerId !== req.user!.id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
     res.json({ success: true, data: board });
   } catch (err) {
     next(err);
@@ -49,6 +51,9 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = BoardIdParam.parse(req.params);
+    const board = await prisma.board.findUnique({ where: { id } });
+    if (!board) throw new AppError('Board not found', 404, 'BOARD_NOT_FOUND');
+    if (board.ownerId !== req.user!.id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
     await prisma.board.delete({ where: { id } });
     res.status(204).send();
   } catch (err) {
