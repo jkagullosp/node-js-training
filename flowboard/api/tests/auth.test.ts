@@ -247,3 +247,56 @@ describe('Auth middleware — missing token', () => {
     expect(res.body.code).toBe('UNAUTHORIZED');
   });
 });
+
+// ---------------------------------------------------------------------------
+// POST /auth/login — brute-force protection (real Redis + Prisma)
+// ---------------------------------------------------------------------------
+describe('POST /auth/login — brute-force protection', () => {
+  // 10 bcrypt compares @ cost 12 ≈ 1–3s; give the test room to breathe
+  jest.setTimeout(15000);
+
+  it('returns 429 after MAX_FAILURES failed attempts from the same IP', async () => {
+    const email = `brute-${Date.now()}@flowboard.test`;
+
+    // Fire 10 failed attempts — user does not exist, dummy-hash bcrypt runs each time
+    for (let i = 0; i < 10; i++) {
+      await request(app)
+        .post('/auth/login')
+        .send({ email, password: 'WrongPass1!' });
+    }
+
+    // The 11th attempt must be blocked
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email, password: 'WrongPass1!' });
+
+    expect(res.status).toBe(429);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('RATE_LIMIT_EXCEEDED');
+  });
+
+  it('resets the failure counter after a successful login', async () => {
+    const email = `brute-reset-${Date.now()}@flowboard.test`;
+    const password = 'RealPass123!';
+
+    await request(app).post('/auth/register').send({ email, password });
+
+    // Accumulate 5 failures
+    for (let i = 0; i < 5; i++) {
+      await request(app)
+        .post('/auth/login')
+        .send({ email, password: 'WrongPass1!' });
+    }
+
+    // Successful login — resets the counter
+    const success = await request(app).post('/auth/login').send({ email, password });
+    expect(success.status).toBe(200);
+
+    // One more failure after reset — counter is now 1, not 6; must be 401 not 429
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email, password: 'WrongPass1!' });
+
+    expect(res.status).toBe(401);
+  });
+});

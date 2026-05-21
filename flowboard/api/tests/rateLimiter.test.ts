@@ -27,6 +27,21 @@ jest.mock('../src/lib/redis', () => ({
   redis: mockRedis,
 }));
 
+// ── Mock Prisma ───────────────────────────────────────────────────────────
+// This is a unit test for the rate-limiter middleware, not an integration test.
+// Prisma must be mocked so requests that pass the rate limiter do not attempt
+// a real DB connection and return unpredictable 5xx responses.
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+  },
+};
+
+jest.mock('../src/lib/prisma', () => ({
+  prisma: mockPrisma,
+}));
+
 // ── Imports (after mock declaration) ─────────────────────────────────────
 import request from 'supertest';
 import { type Request, type Response } from 'express';
@@ -47,6 +62,14 @@ beforeEach(() => {
   mockRedis.ping.mockResolvedValue('PONG');
   // xadd() used by publishTaskEvent — succeed silently
   mockRedis.xadd.mockResolvedValue('0-1');
+  // SET NX EX called by rateLimiter (and loginBruteForce.recordLoginFailure) —
+  // default to OK (key created); tests that need the NX no-op override per-test.
+  mockRedis.set.mockResolvedValue('OK');
+
+  // Prisma: default to user not found — login routes return 401 (wrong creds)
+  // rather than trying to reach a real database.
+  mockPrisma.user.findUnique.mockResolvedValue(null);
+  mockPrisma.user.create.mockResolvedValue({ id: 'mock-id', email: 'x@flowboard.test' });
 });
 
 afterAll(async () => {
@@ -89,9 +112,10 @@ describe('Rate limiter — limit exceeded', () => {
     expect(res.status).not.toBe(429);
   });
 
-  it('sets an expiry key on the first request in a window (count === 1)', async () => {
+  it('initialises the rate-limit key atomically (SET NX EX) on every request', async () => {
+    // The fixed implementation calls SET key 0 NX EX <ttl> before INCR so the
+    // TTL is bound atomically. expire() is never called directly.
     mockRedis.incr.mockResolvedValue(1);
-    mockRedis.expire.mockResolvedValue(1);
     mockRedis.get.mockResolvedValue(null);
     mockRedis.set.mockResolvedValue('OK');
 
@@ -99,7 +123,16 @@ describe('Rate limiter — limit exceeded', () => {
       .post('/auth/login')
       .send({ email: 'x@flowboard.test', password: 'SomePass1!' });
 
-    expect(mockRedis.expire).toHaveBeenCalledTimes(1);
+    // set() must have been called with NX so the key is only created once
+    expect(mockRedis.set).toHaveBeenCalledWith(
+      expect.stringMatching(/^rate:/),
+      '0',
+      'EX',
+      15 * 60,
+      'NX'
+    );
+    // expire() must never be called — the TTL is set atomically via SET NX EX
+    expect(mockRedis.expire).not.toHaveBeenCalled();
   });
 
   it('uses "unknown" as the rate-limit key when req.ip is undefined', async () => {
@@ -116,10 +149,12 @@ describe('Rate limiter — limit exceeded', () => {
     expect(mockNext).toHaveBeenCalledWith();
   });
 
-  it('does not call expire again for subsequent requests in the same window', async () => {
-    mockRedis.incr.mockResolvedValue(5); // not the first request
+  it('never calls expire — TTL is always set via SET NX EX, not a separate EXPIRE', async () => {
+    // Even on subsequent requests (count > 1) the SET NX is a no-op on an
+    // existing key, and expire() is never called at all.
+    mockRedis.incr.mockResolvedValue(5);
     mockRedis.get.mockResolvedValue(null);
-    mockRedis.set.mockResolvedValue('OK');
+    mockRedis.set.mockResolvedValue(null); // NX no-op — key already exists
 
     await request(app)
       .post('/auth/login')
