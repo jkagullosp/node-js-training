@@ -7,6 +7,7 @@ import { prisma } from '../lib/prisma';
 import { redis } from '../lib/redis';
 import { AppError } from '../errors/AppError';
 import { rateLimiter } from '../middleware/rateLimiter';
+import { checkLoginFailures, recordLoginFailure, resetLoginFailures } from '../middleware/loginBruteForce';
 import {
   RegisterSchema,
   LoginSchema,
@@ -92,6 +93,9 @@ router.post('/register', rateLimiter, async (req: Request, res: Response, next: 
 router.post('/login', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = LoginSchema.parse(req.body);
+    const ip = req.ip ?? 'unknown';
+
+    await checkLoginFailures(ip);
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -103,8 +107,11 @@ router.post('/login', rateLimiter, async (req: Request, res: Response, next: Nex
     const match = await bcrypt.compare(password, passwordHash);
 
     if (!user || !match) {
+      await recordLoginFailure(ip);
       throw new AppError('Invalid credentials', 401, 'UNAUTHORIZED');
     }
+
+    await resetLoginFailures(ip);
 
     const accessToken = issueAccessToken(user.id, user.email);
     const refreshToken = await issueRefreshToken(user.id);

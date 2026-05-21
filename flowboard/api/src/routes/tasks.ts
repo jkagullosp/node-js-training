@@ -51,7 +51,16 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         type: 'task.created',
         taskId: task.id,
         userId: req.user!.id,
-        data: task as unknown as Record<string, unknown>,
+        data: {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          boardId: task.boardId,
+          createdAt: task.createdAt.toISOString(),
+          updatedAt: task.updatedAt.toISOString(),
+        },
         timestamp: new Date().toISOString(),
       });
     } catch (eventErr) {
@@ -82,7 +91,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
         type: 'task.updated',
         taskId: task.id,
         userId: req.user!.id,
-        data: body as unknown as Record<string, unknown>,
+        data: { ...body },
         timestamp: new Date().toISOString(),
       });
     } catch (eventErr) {

@@ -19,7 +19,7 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().optional(),
 
   // Logging
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 
 // Crash immediately at startup if any required var is missing or malformed.

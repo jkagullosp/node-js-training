@@ -15,10 +15,12 @@ export async function rateLimiter(
   const key = `rate:${ip}`;
 
   try {
+    // SET key 0 NX EX <ttl> atomically initialises the key with a TTL only when
+    // it does not yet exist. INCR then always increments. This eliminates the
+    // INCR-then-conditional-EXPIRE race where two concurrent requests both see
+    // count=1 and one of them misses the EXPIRE call, creating an immortal key.
+    await redis.set(key, '0', 'EX', WINDOW_SECONDS, 'NX');
     const count = await redis.incr(key);
-    if (count === 1) {
-      await redis.expire(key, WINDOW_SECONDS);
-    }
     if (count > MAX_REQUESTS) {
       next(new AppError('Too many requests', 429, 'RATE_LIMIT_EXCEEDED'));
       return;
