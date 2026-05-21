@@ -37,6 +37,8 @@ services:
       context: ./api
       dockerfile: Dockerfile
     env_file: ./api/.env
+    environment:
+      NODE_ENV: production
     networks:
       - flowboard_net
     depends_on:
@@ -52,6 +54,8 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     env_file: ./worker/.env
+    environment:
+      NODE_ENV: production
     networks:
       - flowboard_net
     depends_on:

@@ -193,6 +193,10 @@ async function processMessage(
       await moveToDlq(redis, messageId, fields, reason);
       await redis.xack(STREAM_KEY, GROUP_NAME, messageId);
       failureCounts.delete(messageId);
+    } else {
+      // Exponential backoff before the next PEL drain: 100ms, 200ms, capped at 30s
+      const delayMs = Math.min(100 * Math.pow(2, count - 1), 30_000);
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
     }
     // If under max retries: do not ACK — message stays in PEL for retry on next XREADGROUP
   }

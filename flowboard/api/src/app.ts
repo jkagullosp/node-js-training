@@ -2,7 +2,6 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import helmet from 'helmet';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
-import { env } from './config';
 import { AppError, errorHandler } from './errors/AppError';
 import { authenticate } from './middleware/authenticate';
 import logger from './lib/logger';
@@ -22,18 +21,15 @@ export function createApp(): Express {
   app.use(helmet());
 
   // ── CORS ───────────────────────────────────────────────────────────────────
-  /* istanbul ignore next */
-  const allowedOrigins = env.ALLOWED_ORIGINS
-    ? env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-    : [];
-
   app.use(
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        /* istanbul ignore next */
-        if (env.NODE_ENV !== 'production') return callback(null, true);
-        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+        const origins = process.env.ALLOWED_ORIGINS
+          ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+          : [];
+        if (origins.includes(origin)) return callback(null, true);
         callback(new Error(`CORS: origin ${origin} is not allowed`));
       },
       credentials: true,
