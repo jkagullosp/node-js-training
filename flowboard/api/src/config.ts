@@ -17,8 +17,8 @@ const envSchema = z.object({
 
   // CORS — comma-separated list of allowed origins; optional, required in production
   ALLOWED_ORIGINS: z.string().optional().refine(
-    (val) => process.env['NODE_ENV'] !== 'production' || val !== undefined,
-    { message: 'ALLOWED_ORIGINS is required in production' }
+    (val) => process.env['NODE_ENV'] !== 'production' || (val !== undefined && val.trim().length > 0),
+    { message: 'ALLOWED_ORIGINS must be a non-empty string in production' }
   ),
 
   // Logging

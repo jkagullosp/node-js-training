@@ -141,7 +141,7 @@ async function moveToDlq(
 
 async function initConsumerGroup(redis: Redis): Promise<void> {
   try {
-    await redis.xgroup('CREATE', STREAM_KEY, GROUP_NAME, '$', 'MKSTREAM');
+    await redis.xgroup('CREATE', STREAM_KEY, GROUP_NAME, '0', 'MKSTREAM');
     logger.info({ group: GROUP_NAME, stream: STREAM_KEY }, 'Consumer group created');
   } catch (err: unknown) {
     // BUSYGROUP means the group already exists — safe to ignore
@@ -263,6 +263,12 @@ async function runConsumerLoop(redis: Redis, prisma: PrismaClient): Promise<void
 
 async function main(): Promise<void> {
   const redisClient = createRedisClient();
+
+  const dbUrl = process.env['DATABASE_URL'];
+  if (!dbUrl) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+
   const prisma = new PrismaClient();
 
   await initConsumerGroup(redisClient);

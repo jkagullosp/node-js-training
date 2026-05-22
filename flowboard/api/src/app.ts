@@ -5,6 +5,7 @@ import pinoHttp from 'pino-http';
 import { AppError, errorHandler } from './errors/AppError';
 import { authenticate } from './middleware/authenticate';
 import logger from './lib/logger';
+import { env } from './config';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
 import taskRouter from './routes/tasks';
@@ -25,9 +26,9 @@ export function createApp(): Express {
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (process.env.NODE_ENV !== 'production') return callback(null, true);
-        const origins = process.env.ALLOWED_ORIGINS
-          ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+        if (process.env['NODE_ENV'] !== 'production') return callback(null, true);
+        const origins = process.env['ALLOWED_ORIGINS']
+          ? process.env['ALLOWED_ORIGINS'].split(',').map((o) => o.trim())
           : [];
         if (origins.includes(origin)) return callback(null, true);
         callback(new AppError(`CORS: origin ${origin} is not allowed`, 403, 'CORS_NOT_ALLOWED'));

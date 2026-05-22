@@ -63,6 +63,34 @@ describe('GET /tasks', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data).toHaveLength(0);
   });
+
+  it("returns only the requesting user's tasks — not other users'", async () => {
+    const boardARes = await request(app)
+      .post('/boards')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: 'Board A' });
+    await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'Task A', boardId: boardARes.body.data.id });
+
+    const boardBRes = await request(app)
+      .post('/boards')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ name: 'Board B' });
+    await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ title: 'Task B', boardId: boardBRes.body.data.id });
+
+    const resA = await request(app)
+      .get('/tasks')
+      .set('Authorization', `Bearer ${tokenA}`);
+
+    expect(resA.status).toBe(200);
+    expect(resA.body.data).toHaveLength(1);
+    expect(resA.body.data[0].title).toBe('Task A');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -277,6 +305,16 @@ describe('PATCH /tasks/:id', () => {
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
     expect(res.body.code).toBe('FORBIDDEN');
+  });
+
+  it('returns 404 when the task does not exist', async () => {
+    const res = await request(app)
+      .patch('/tasks/00000000-0000-0000-0000-000000000000')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'Updated' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
   });
 });
 

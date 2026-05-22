@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 // Fixed UUIDs so upserts are idempotent across re-runs
-const SEED_USER_EMAIL = 'dev@flowboard.local';
+const SEED_USER_EMAIL = 'dev@flowboard.test';
 const SEED_BOARD_1_ID = '00000000-0000-0000-0000-000000000001';
 const SEED_BOARD_2_ID = '00000000-0000-0000-0000-000000000002';
 const SEED_TASK_1_ID = '00000000-0000-0000-0000-000000000010';
