@@ -16,7 +16,10 @@ const envSchema = z.object({
   REDIS_URL: z.string().url('REDIS_URL must be a valid URL'),
 
   // CORS — comma-separated list of allowed origins; optional, required in production
-  ALLOWED_ORIGINS: z.string().optional(),
+  ALLOWED_ORIGINS: z.string().optional().refine(
+    (val) => process.env['NODE_ENV'] !== 'production' || val !== undefined,
+    { message: 'ALLOWED_ORIGINS is required in production' }
+  ),
 
   // Logging
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
@@ -27,6 +30,7 @@ const envSchema = z.object({
 // with a misconfigured environment.
 const parsed = envSchema.safeParse(process.env);
 
+/* istanbul ignore next */
 if (!parsed.success) {
   const formatted = parsed.error.errors
     .map((e) => `  ${e.path.join('.')}: ${e.message}`)

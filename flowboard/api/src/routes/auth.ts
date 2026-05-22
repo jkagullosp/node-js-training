@@ -170,7 +170,7 @@ router.post('/refresh', rateLimiter, async (req: Request, res: Response, next: N
 });
 
 // POST /auth/logout
-router.post('/logout', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/logout', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { refreshToken } = LogoutSchema.parse(req.body);
 

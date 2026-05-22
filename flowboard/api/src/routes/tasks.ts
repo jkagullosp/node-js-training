@@ -4,6 +4,7 @@ import { AppError } from '../errors/AppError';
 import { TaskIdParam, CreateTaskSchema, UpdateTaskSchema } from '../schemas/taskSchemas';
 import { publishTaskEvent } from '../lib/events';
 import logger from '../lib/logger';
+import { requireUser } from '../middleware/authenticate';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const router = Router();
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tasks = await prisma.task.findMany({
-      where: { board: { ownerId: req.user!.id } },
+      where: { board: { ownerId: requireUser(req).id } },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ success: true, data: tasks });
@@ -29,7 +30,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       include: { board: { select: { ownerId: true } } },
     });
     if (!task) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
-    if (task.board.ownerId !== req.user!.id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
+    if (task.board.ownerId !== requireUser(req).id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
     res.json({ success: true, data: task });
   } catch (err) {
     next(err);
@@ -43,14 +44,14 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const board = await prisma.board.findUnique({ where: { id: body.boardId } });
     if (!board) throw new AppError('Board not found', 404, 'BOARD_NOT_FOUND');
-    if (board.ownerId !== req.user!.id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
+    if (board.ownerId !== requireUser(req).id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
 
     const task = await prisma.task.create({ data: body });
     try {
       await publishTaskEvent({
         type: 'task.created',
         taskId: task.id,
-        userId: req.user!.id,
+        userId: requireUser(req).id,
         data: {
           id: task.id,
           title: task.title,
@@ -83,14 +84,14 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       include: { board: { select: { ownerId: true } } },
     });
     if (!existing) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
-    if (existing.board.ownerId !== req.user!.id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
+    if (existing.board.ownerId !== requireUser(req).id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
 
     const task = await prisma.task.update({ where: { id }, data: body });
     try {
       await publishTaskEvent({
         type: 'task.updated',
         taskId: task.id,
-        userId: req.user!.id,
+        userId: requireUser(req).id,
         data: { ...body },
         timestamp: new Date().toISOString(),
       });
@@ -113,14 +114,14 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
       include: { board: { select: { ownerId: true } } },
     });
     if (!existing) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
-    if (existing.board.ownerId !== req.user!.id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
+    if (existing.board.ownerId !== requireUser(req).id) throw new AppError('Forbidden', 403, 'FORBIDDEN');
 
     await prisma.task.delete({ where: { id } });
     try {
       await publishTaskEvent({
         type: 'task.deleted',
         taskId: id,
-        userId: req.user!.id,
+        userId: requireUser(req).id,
         data: {},
         timestamp: new Date().toISOString(),
       });

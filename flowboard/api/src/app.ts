@@ -30,7 +30,7 @@ export function createApp(): Express {
           ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
           : [];
         if (origins.includes(origin)) return callback(null, true);
-        callback(new Error(`CORS: origin ${origin} is not allowed`));
+        callback(new AppError(`CORS: origin ${origin} is not allowed`, 403, 'CORS_NOT_ALLOWED'));
       },
       credentials: true,
     })

@@ -71,6 +71,6 @@ describe('CORS — production mode origin validation', () => {
     const res = await request(corsApp).get('/health').set('Origin', 'http://evil.com');
     process.env['NODE_ENV'] = 'test';
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(403);
   });
 });

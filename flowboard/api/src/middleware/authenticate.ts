@@ -19,6 +19,11 @@ function isAccessTokenPayload(payload: unknown): payload is AccessTokenPayload {
   );
 }
 
+export function requireUser(req: Request): { id: string; email: string } {
+  if (!req.user) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+  return req.user;
+}
+
 export function authenticate(
   req: Request,
   _res: Response,
