@@ -1,0 +1,22 @@
+info:
+  name: Update task
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/tasks/{{taskId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "status": "IN_PROGRESS",
+        "priority": "HIGH"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

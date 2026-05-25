@@ -2,10 +2,12 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import helmet from 'helmet';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
 import { AppError, errorHandler } from './errors/AppError';
 import { authenticate } from './middleware/authenticate';
 import logger from './lib/logger';
 import { env } from './config';
+import { swaggerSpec } from './lib/swagger';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
 import taskRouter from './routes/tasks';
@@ -42,6 +44,29 @@ export function createApp(): Express {
 
   // ── Structured HTTP logging ───────────────────────────────────────────────
   app.use(pinoHttp({ logger }));
+
+  // ── API Docs ──────────────────────────────────────────────────────────────
+  app.use(
+    '/api-docs',
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          // Allow Swagger UI's "Try it out" fetch calls to reach the API
+          connectSrc: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customSiteTitle: 'FlowBoard API Docs',
+      swaggerOptions: { persistAuthorization: true },
+    })
+  );
 
   // ── Routes ────────────────────────────────────────────────────────────────
   // Public health/readiness endpoints — no auth middleware

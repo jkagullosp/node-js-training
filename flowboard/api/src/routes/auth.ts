@@ -56,6 +56,55 @@ async function issueRefreshToken(userId: string): Promise<string> {
   return token;
 }
 
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Register a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 example: supersecret
+ *     responses:
+ *       201:
+ *         description: User created — returns token pair
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required: [success, data]
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/TokenPair'
+ *       409:
+ *         description: Email already in use
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 // POST /auth/register
 router.post('/register', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -89,6 +138,65 @@ router.post('/register', rateLimiter, async (req: Request, res: Response, next: 
   }
 });
 
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Authenticate and obtain tokens
+ *     description: >
+ *       Rate limited to 100 requests per 15-minute window per IP.
+ *       Returns 429 when the limit is exceeded.
+ *       Returns 401 after repeated failed attempts (brute-force protection).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 example: supersecret
+ *     responses:
+ *       200:
+ *         description: Login successful — returns token pair
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required: [success, data]
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/TokenPair'
+ *       401:
+ *         description: Invalid credentials or brute-force lockout
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 // POST /auth/login
 router.post('/login', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -122,6 +230,53 @@ router.post('/login', rateLimiter, async (req: Request, res: Response, next: Nex
   }
 });
 
+/**
+ * @openapi
+ * /auth/refresh:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Rotate the refresh token and get a new access token
+ *     description: >
+ *       Implements token rotation — the submitted refresh token is invalidated
+ *       and a new token pair is issued. The old refresh token cannot be reused.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: eyJhbGci...
+ *     responses:
+ *       200:
+ *         description: Token refreshed — returns new token pair
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required: [success, data]
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/TokenPair'
+ *       401:
+ *         description: Refresh token invalid, expired, or already rotated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 // POST /auth/refresh
 router.post('/refresh', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -169,6 +324,36 @@ router.post('/refresh', rateLimiter, async (req: Request, res: Response, next: N
   }
 });
 
+/**
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Invalidate a refresh token
+ *     description: >
+ *       Idempotent. If the refresh token is already expired or invalid, the
+ *       endpoint still returns 204 — it never errors on token state.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: eyJhbGci...
+ *     responses:
+ *       204:
+ *         description: Logged out — no body
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 // POST /auth/logout
 router.post('/logout', rateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {

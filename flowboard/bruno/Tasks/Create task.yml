@@ -1,0 +1,31 @@
+info:
+  name: Create task
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/tasks"
+  body:
+    type: json
+    data: |-
+      {
+        "title": "My Task",
+        "description": "Optional description",
+        "priority": "HIGH",
+        "boardId": "{{boardId}}"
+      }
+  auth: inherit
+
+script:
+  res: |-
+    const body = res.getBody();
+    if (body && body.data && body.data.id) {
+      bru.setEnvVar("taskId", body.data.id);
+    }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

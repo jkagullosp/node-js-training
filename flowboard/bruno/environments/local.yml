@@ -1,0 +1,21 @@
+name: local
+vars:
+  - name: baseUrl
+    value: http://localhost
+    enabled: true
+  - name: accessToken
+    value: ""
+    enabled: true
+    secret: false
+  - name: refreshToken
+    value: ""
+    enabled: true
+    secret: false
+  - name: boardId
+    value: ""
+    enabled: true
+    secret: false
+  - name: taskId
+    value: ""
+    enabled: true
+    secret: false

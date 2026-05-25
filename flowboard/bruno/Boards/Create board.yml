@@ -1,0 +1,28 @@
+info:
+  name: Create board
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/boards"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "My New Board"
+      }
+  auth: inherit
+
+script:
+  res: |-
+    const body = res.getBody();
+    if (body && body.data && body.data.id) {
+      bru.setEnvVar("boardId", body.data.id);
+    }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

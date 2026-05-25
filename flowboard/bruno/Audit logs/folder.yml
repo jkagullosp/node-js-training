@@ -1,0 +1,10 @@
+info:
+  name: Audit logs
+  type: folder
+  seq: 7
+
+request:
+  auth:
+    mode: bearer
+    bearer:
+      token: "{{accessToken}}"
