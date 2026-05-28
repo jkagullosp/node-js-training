@@ -169,6 +169,28 @@ describe('POST /tasks', () => {
     expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 
+  it('returns 422 when description is an empty string', async () => {
+    const res = await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'Task', boardId: boardAId, description: '' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 422 when description exceeds 1000 characters', async () => {
+    const res = await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'Task', boardId: boardAId, description: 'a'.repeat(1001) });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
+
   it('returns 403 when boardId belongs to another user', async () => {
     // Create a board owned by userB
     const boardBRes = await request(app)
@@ -199,6 +221,16 @@ describe('GET /tasks/:id', () => {
   it('returns 401 without an auth token', async () => {
     const res = await request(app).get('/tasks/00000000-0000-0000-0000-000000000000');
     expect(res.status).toBe(401);
+  });
+
+  it('returns 422 when the id param is not a valid UUID', async () => {
+    const res = await request(app)
+      .get('/tasks/not-a-uuid')
+      .set('Authorization', `Bearer ${tokenA}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 
   it('returns 200 with the task when the owner requests it', async () => {
@@ -290,6 +322,40 @@ describe('PATCH /tasks/:id', () => {
     expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 
+  it('returns 422 when description is an empty string on update', async () => {
+    const createRes = await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'Desc Test Task', boardId: boardAId });
+    const taskId = createRes.body.data.id;
+
+    const res = await request(app)
+      .patch(`/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ description: '' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 200 when body is an empty object (all fields optional)', async () => {
+    const createRes = await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'No-change Task', boardId: boardAId });
+    const taskId = createRes.body.data.id;
+
+    const res = await request(app)
+      .patch(`/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.id).toBe(taskId);
+  });
+
   it('returns 403 when a non-owner attempts to update the task', async () => {
     const createRes = await request(app)
       .post('/tasks')
@@ -325,6 +391,16 @@ describe('DELETE /tasks/:id', () => {
   it('returns 401 without an auth token', async () => {
     const res = await request(app).delete('/tasks/00000000-0000-0000-0000-000000000000');
     expect(res.status).toBe(401);
+  });
+
+  it('returns 422 when the id param is not a valid UUID', async () => {
+    const res = await request(app)
+      .delete('/tasks/not-a-uuid')
+      .set('Authorization', `Bearer ${tokenA}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 
   it('returns 204 when the owner deletes their task', async () => {

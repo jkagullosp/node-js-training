@@ -69,6 +69,17 @@ describe('POST /auth/register', () => {
 
     expect(res.status).toBe(413);
   });
+
+  it('returns 422 when password exceeds 128 characters', async () => {
+    const res = await request(app).post('/auth/register').send({
+      email: `reg-longpw-${Date.now()}@flowboard.test`,
+      password: 'a'.repeat(129),
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -109,6 +120,17 @@ describe('POST /auth/login', () => {
 
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
+  });
+
+  it('returns 422 when password exceeds 128 characters', async () => {
+    const res = await request(app).post('/auth/login').send({
+      email,
+      password: 'a'.repeat(129),
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 });
 
@@ -176,6 +198,14 @@ describe('POST /auth/refresh', () => {
     expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
+  it('returns 422 when refreshToken is an empty string', async () => {
+    const res = await request(app).post('/auth/refresh').send({ refreshToken: '' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
+
   it('returns 401 after logout — token is invalidated and cannot be used for refresh', async () => {
     const regRes = await request(app).post('/auth/register').send({
       email: `logout-refresh-${Date.now()}@flowboard.test`,
@@ -212,6 +242,14 @@ describe('POST /auth/logout', () => {
     const badToken = jwt.sign({ foo: 'bar' }, process.env['JWT_REFRESH_SECRET']!, { expiresIn: '1m' });
     const res = await request(app).post('/auth/logout').send({ refreshToken: badToken });
     expect(res.status).toBe(204);
+  });
+
+  it('returns 422 when refreshToken is an empty string', async () => {
+    const res = await request(app).post('/auth/logout').send({ refreshToken: '' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
   });
 
   it('returns 204 even when called twice (idempotent logout)', async () => {

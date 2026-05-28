@@ -6,14 +6,14 @@ export const TaskIdParam = z.object({
 
 export const CreateTaskSchema = z.object({
   title: z.string().min(1).max(255),
-  description: z.string().optional(),
+  description: z.string().min(1).max(1000).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
   boardId: z.string().uuid(),
 }).strict();
 
 export const UpdateTaskSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  description: z.string().optional(),
+  description: z.string().min(1).max(1000).optional(),
   status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
 }).strict();

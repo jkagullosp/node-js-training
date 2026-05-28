@@ -106,12 +106,33 @@ describe('POST /boards', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.code).toBe('VALIDATION_ERROR');
   });
+
+  it('returns 422 when an extra unknown field is sent (strict schema)', async () => {
+    const res = await request(app)
+      .post('/boards')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: 'Valid Board', extraField: 'should-be-rejected' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
 });
 
 // ---------------------------------------------------------------------------
 // GET /boards/:id
 // ---------------------------------------------------------------------------
 describe('GET /boards/:id', () => {
+  it('returns 422 when the id param is not a valid UUID', async () => {
+    const res = await request(app)
+      .get('/boards/not-a-uuid')
+      .set('Authorization', `Bearer ${tokenA}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
+
   it('returns 200 with board and tasks when the owner requests it', async () => {
     const createRes = await request(app)
       .post('/boards')

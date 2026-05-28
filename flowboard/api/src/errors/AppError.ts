@@ -48,6 +48,34 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
+  // Prisma FK-constraint violation → 404
+  /* istanbul ignore if */
+  if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2003'
+  ) {
+    res.status(404).json({
+      success: false,
+      message: 'Referenced resource not found',
+      code: 'NOT_FOUND',
+    });
+    return;
+  }
+
+  // Prisma unique-constraint violation → 409
+  /* istanbul ignore if */
+  if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2002'
+  ) {
+    res.status(409).json({
+      success: false,
+      message: 'A resource with that value already exists',
+      code: 'CONFLICT',
+    });
+    return;
+  }
+
   // Known operational error
   if (err instanceof AppError) {
     res.status(err.statusCode).json({

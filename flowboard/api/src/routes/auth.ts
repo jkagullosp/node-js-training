@@ -1,7 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Prisma } from '@prisma/client';
 import { env } from '../config';
 import { prisma } from '../lib/prisma';
 import { redis } from '../lib/redis';
@@ -112,22 +111,10 @@ router.post('/register', rateLimiter, async (req: Request, res: Response, next: 
 
     const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    let user: { id: string; email: string };
-    try {
-      user = await prisma.user.create({
-        data: { email, password: hashed },
-        select: { id: true, email: true },
-      });
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
-        throw new AppError('Email already in use', 409, 'CONFLICT');
-      }
-      /* istanbul ignore next */
-      throw err;
-    }
+    const user = await prisma.user.create({
+      data: { email, password: hashed },
+      select: { id: true, email: true },
+    });
 
     const accessToken = issueAccessToken(user.id, user.email);
     const refreshToken = await issueRefreshToken(user.id);
