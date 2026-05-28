@@ -217,12 +217,12 @@ Stream key: `tasks:events`
 
 ### Consuming (Worker)
 
-- Consumer group: `worker-group`
+- Consumer group: `audit-group`
 - Consumer name: `worker-1`
-- Group created with: `XGROUP CREATE tasks:events worker-group $ MKSTREAM`
+- Group created with: `XGROUP CREATE tasks:events audit-group $ MKSTREAM`
   - `BUSYGROUP` error is swallowed on subsequent boots
 - Each loop iteration first drains the PEL (pending entries, ID `0`) then blocks for new messages (`>`)
-- `XACK tasks:events worker-group <messageId>` is called after successful handler execution
+- `XACK tasks:events audit-group <messageId>` is called after successful handler execution
 
 ### Dead-Letter Queue (DLQ)
 
@@ -287,7 +287,7 @@ Return shape on 403:
 ## 12. Security Rules
 
 - No hardcoded secrets — all sensitive values come from environment variables
-- All request bodies validated by Zod schemas with `.strip()` to drop unknown fields
+- All request bodies validated by Zod schemas with `.strict()` — unknown fields trigger 422 VALIDATION_ERROR (not silently dropped)
 - Path params (IDs) validated as UUIDs via Zod
 - `express.json({ limit: '10kb' })` — 413 for oversized bodies
 - `app.set('trust proxy', 1)` — correct IP extraction behind Nginx

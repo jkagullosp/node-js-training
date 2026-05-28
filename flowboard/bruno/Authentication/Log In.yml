@@ -10,18 +10,15 @@ http:
     type: json
     data: |-
       {
-        "email": "dev@flowboard.local",
-        "password": "Password1!"
+        "email": "test4@test.com",
+        "password": "Test4password!"
       }
   auth: inherit
 
-script:
-  res: |-
-    const body = res.getBody();
-    if (body && body.data && body.data.accessToken) {
-      bru.setEnvVar("accessToken", body.data.accessToken);
-      bru.setEnvVar("refreshToken", body.data.refreshToken);
-    }
+runtime:
+  variables:
+    - name: baseUrl
+      value: http://localhost
 
 settings:
   encodeUrl: true

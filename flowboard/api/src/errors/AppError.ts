@@ -58,6 +58,17 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
+  // body-parser / Express middleware HTTP errors (e.g. 413 Payload Too Large)
+  const httpStatus = (err as { status?: number }).status;
+  if (httpStatus !== undefined && httpStatus >= 400 && httpStatus < 600) {
+    res.status(httpStatus).json({
+      success: false,
+      message: err instanceof Error ? err.message : 'Request error',
+      code: 'HTTP_ERROR',
+    });
+    return;
+  }
+
   // Unknown / unexpected error — hide internals in production
   const isProduction = env.NODE_ENV === 'production';
   res.status(500).json({

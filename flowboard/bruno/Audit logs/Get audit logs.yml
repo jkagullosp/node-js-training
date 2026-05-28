@@ -6,7 +6,14 @@ info:
 http:
   method: GET
   url: "{{baseUrl}}/audit-logs"
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkM2VjZmZhMi1mYTlkLTRiM2ItOGJiNC05OTllNWMyNzBhNmEiLCJlbWFpbCI6InRlc3Q0QHRlc3QuY29tIiwiaWF0IjoxNzc5Njc0Njc4LCJleHAiOjE3Nzk2NzU1Nzh9.ud1BdNaITF0fdRmhM3G3fzi1vJdSSiHFg8tq9wJHCSw
+
+runtime:
+  variables:
+    - name: baseUrl
+      value: http://localhost
 
 settings:
   encodeUrl: true

@@ -61,6 +61,14 @@ describe('POST /auth/register', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.code).toBe('VALIDATION_ERROR');
   });
+
+  it('returns 413 when the request body exceeds 10kb', async () => {
+    const res = await request(app)
+      .post('/auth/register')
+      .send({ email: 'big@test.com', password: 'TestPass123!', extra: 'x'.repeat(10_500) });
+
+    expect(res.status).toBe(413);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -166,6 +174,21 @@ describe('POST /auth/refresh', () => {
     const res = await request(app).post('/auth/refresh').send({ refreshToken });
     expect(res.status).toBe(401);
     expect(res.body.code).toBe('UNAUTHORIZED');
+  });
+
+  it('returns 401 after logout — token is invalidated and cannot be used for refresh', async () => {
+    const regRes = await request(app).post('/auth/register').send({
+      email: `logout-refresh-${Date.now()}@flowboard.test`,
+      password: 'LogoutRefresh1!',
+    });
+    const { refreshToken } = regRes.body.data;
+
+    const logoutRes = await request(app).post('/auth/logout').send({ refreshToken });
+    expect(logoutRes.status).toBe(204);
+
+    const res = await request(app).post('/auth/refresh').send({ refreshToken });
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
   });
 });
 

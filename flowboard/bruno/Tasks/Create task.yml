@@ -15,14 +15,16 @@ http:
         "priority": "HIGH",
         "boardId": "{{boardId}}"
       }
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkM2VjZmZhMi1mYTlkLTRiM2ItOGJiNC05OTllNWMyNzBhNmEiLCJlbWFpbCI6InRlc3Q0QHRlc3QuY29tIiwiaWF0IjoxNzc5Njc0Njc4LCJleHAiOjE3Nzk2NzU1Nzh9.ud1BdNaITF0fdRmhM3G3fzi1vJdSSiHFg8tq9wJHCSw
 
-script:
-  res: |-
-    const body = res.getBody();
-    if (body && body.data && body.data.id) {
-      bru.setEnvVar("taskId", body.data.id);
-    }
+runtime:
+  variables:
+    - name: baseUrl
+      value: http://localhost
+    - name: boardId
+      value: de3407ec-b597-41cd-8145-aa110a0c2216
 
 settings:
   encodeUrl: true

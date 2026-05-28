@@ -10,10 +10,18 @@ http:
     type: json
     data: |-
       {
-        "status": "IN_PROGRESS",
-        "priority": "HIGH"
+        "title": "My new task"
       }
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkM2VjZmZhMi1mYTlkLTRiM2ItOGJiNC05OTllNWMyNzBhNmEiLCJlbWFpbCI6InRlc3Q0QHRlc3QuY29tIiwiaWF0IjoxNzc5Njc0Njc4LCJleHAiOjE3Nzk2NzU1Nzh9.ud1BdNaITF0fdRmhM3G3fzi1vJdSSiHFg8tq9wJHCSw
+
+runtime:
+  variables:
+    - name: baseUrl
+      value: http://localhost
+    - name: taskId
+      value: c891c994-01d7-4622-8dd0-440fbdce72d0
 
 settings:
   encodeUrl: true

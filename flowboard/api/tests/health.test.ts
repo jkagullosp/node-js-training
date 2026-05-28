@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { redis } from '../src/lib/redis';
 
 const app = createApp();
 
@@ -36,16 +37,17 @@ describe('GET /ready', () => {
     expect(res.body.code).toBe('NOT_FOUND');
   });
 
-  // NOTE — Manual verification required for the 503 path:
-  //
-  // The /ready 503 branch fires only when PostgreSQL or Redis is unreachable.
-  // Stopping a container mid-test is not feasible in this automated suite without
-  // additional tooling. To verify:
-  //
-  //   1. docker compose -f docker-compose.test.yml stop db
-  //   2. curl http://localhost:<api-port>/ready
-  //      → expect: HTTP 503, { "success": false, "code": "NOT_READY" }
-  //   3. docker compose -f docker-compose.test.yml start db
+  it('returns 503 when Redis is unreachable', async () => {
+    jest.spyOn(redis, 'ping').mockRejectedValueOnce(new Error('Redis down'));
+
+    const res = await request(app).get('/ready');
+
+    expect(res.status).toBe(503);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('NOT_READY');
+
+    jest.restoreAllMocks();
+  });
 });
 
 // ---------------------------------------------------------------------------

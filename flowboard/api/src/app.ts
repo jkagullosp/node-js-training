@@ -43,7 +43,19 @@ export function createApp(): Express {
   app.use(express.json({ limit: '10kb' }));
 
   // ── Structured HTTP logging ───────────────────────────────────────────────
-  app.use(pinoHttp({ logger }));
+  app.use(
+    pinoHttp({
+      logger,
+      serializers: {
+        req: (req: import('http').IncomingMessage & { body?: unknown }) => ({
+          method: req.method,
+          url: req.url,
+          headers: req.headers,
+          body: req.body,
+        }),
+      },
+    }),
+  );
 
   // ── API Docs ──────────────────────────────────────────────────────────────
   app.use(
